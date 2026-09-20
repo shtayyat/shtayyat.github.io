@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Video</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+
+  #stage { position: fixed; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; background: #000; }
+
+  #player {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: calc(100vw * 9 / 16);
+    min-height: 100vh;
+    min-width: calc(100vh * 16 / 9);
+    border: 0;
+    pointer-events: none;
+  }
+
+  #tap { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <iframe
+    id="player"
+    title="Video"
+    src="https://www.youtube.com/embed/RbOsGXc67RE?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&disablekb=1&fs=0&iv_load_policy=3&enablejsapi=1"
+    allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+  <div id="tap"></div>
+</div>
+
+<script>
+(function () {
+  var frame = document.getElementById('player');
+  var tap   = document.getElementById('tap');
+  var unmuted = false;
+
+  function cmd(func) {
+    try {
+      frame.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: func, args: [] }), '*');
+    } catch (e) {}
+  }
+
+  tap.addEventListener('click', function () {
+    if (unmuted) return;
+    unmuted = true;
+    cmd('unMute');
+    cmd('playVideo');
+  });
+
+  frame.addEventListener('load', function () {
+    try {
+      frame.contentWindow.postMessage(
+        JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*');
+    } catch (e) {}
+  });
+
+  window.addEventListener('message', function (e) {
+    if (typeof e.data !== 'string') return;
+    var d;
+    try { d = JSON.parse(e.data); } catch (err) { return; }
+    if (d && d.event === 'onStateChange' && d.info === 0) {
+      try { window.parent.postMessage('video-ended', '*'); } catch (err) {}
+    }
+  });
+})();
+</script>
+</body>
+</html>
